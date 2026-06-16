@@ -65,7 +65,12 @@ function elisionMarker(
   const tail = lastNChars(text, TAIL_CHARS);
 
   const idClause = id ? ` — id=${id}` : '';
-  const parts: string[] = [`[ctxgov: paged out ${tokens} tokens${idClause}. head: ${head}`];
+  // Explicit warning so a weaker model does not read the preview/key-lines as the
+  // COMPLETE tool output and answer from the leftover noise instead of the
+  // surviving (pinned/recent) content. Keeps the "ctxgov: paged out" prefix and
+  // the "id=cg-..." clause intact (relied on by tests + page-fault recovery).
+  const warn = 'COMPACTED SUMMARY — not the full tool result; do not treat the preview/key-lines below as complete or authoritative';
+  const parts: string[] = [`[ctxgov: paged out ${tokens} tokens (${warn})${idClause}. head: ${head}`];
   if (lines.length > 0) parts.push(`key lines: ${lines.join(' ⏎ ')}`);
   if (tail.length > 0) parts.push(`tail: ${tail}`);
   return parts.join(' | ') + ']';
