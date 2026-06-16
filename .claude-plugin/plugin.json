@@ -1,0 +1,48 @@
+{
+  "name": "tokdiet",
+  "version": "0.1.0",
+  "description": "Token/cost meter + context-compaction proxy companion for Claude Code. Ships a lightweight metering hook that logs tool I/O sizes to ~/.tokdiet; the FULL token-saving proxy runs via `npx tokdiet start` + ANTHROPIC_BASE_URL (a plugin cannot set env vars for the Claude Code process).",
+  "author": {
+    "name": "tokdiet",
+    "url": "https://github.com/agiwhitelist/tokdiet"
+  },
+  "homepage": "https://github.com/agiwhitelist/tokdiet",
+  "repository": "https://github.com/agiwhitelist/tokdiet",
+  "license": "MIT",
+  "keywords": [
+    "tokens",
+    "cost",
+    "proxy",
+    "context",
+    "compaction",
+    "metering",
+    "claude-code",
+    "anthropic",
+    "llm",
+    "ccusage"
+  ],
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/tool-meter.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/tool-meter.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

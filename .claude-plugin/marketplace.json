@@ -1,0 +1,32 @@
+{
+  "name": "tokdiet",
+  "owner": {
+    "name": "tokdiet"
+  },
+  "description": "tokdiet — a token/cost meter and context-compaction proxy companion for Claude Code.",
+  "plugins": [
+    {
+      "name": "tokdiet",
+      "source": "./",
+      "description": "Token/cost meter + context-compaction proxy companion. Ships a lightweight metering hook (logs tool I/O sizes to ~/.tokdiet); the full token-saving proxy runs via `npx tokdiet start` + ANTHROPIC_BASE_URL.",
+      "version": "0.1.0",
+      "author": {
+        "name": "tokdiet"
+      },
+      "homepage": "https://github.com/agiwhitelist/tokdiet",
+      "license": "MIT",
+      "keywords": [
+        "tokens",
+        "cost",
+        "proxy",
+        "context",
+        "compaction",
+        "metering",
+        "claude-code",
+        "anthropic",
+        "llm",
+        "ccusage"
+      ]
+    }
+  ]
+}

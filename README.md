@@ -26,6 +26,16 @@ So we measured it. A **66-task** A/B benchmark across 6 categories on a **real m
 
 **−71% tokens, quality on par with baseline.** Real requests, real grading — not a mock. The ~1–2 task gap is model nondeterminism plus the model *declining to echo a secret* — not context loss; the hardest "needle buried in junk" adversarial cases pass, because `tokdiet` doesn't delete blindly — it pages cold context out *recoverably* and protects anything on‑topic. Reproduce it yourself: `node bench/run.mjs` (needs an API key in env).
 
+### How it compares
+
+|                                              | shows your bill | cuts the bill | proves quality held |
+|----------------------------------------------|:---------------:|:-------------:|:-------------------:|
+| eyeballing `/cost`, ccusage                  |        ✅        |       ❌       |          ❌          |
+| manual `/compact`, hand-pruning context      |        ❌        |    ✅ (blind)  |          ❌          |
+| **tokdiet**                                  |        ✅        |       ✅       |  ✅ measured + auto safe-mode |
+
+Everyone shows the bill or cuts it blind. tokdiet is the one that **cuts it and proves the model didn't get dumber** — and stops cutting the moment it might.
+
 ---
 
 ## Quick start
@@ -46,6 +56,35 @@ Now run your agent (Claude Code, Cursor, Codex, your own script) as usual. Traff
 **Your API key stays with you.** `tokdiet` reads `x-api-key` / `Authorization` only to forward them upstream. They are **never written to SQLite and never written to any log**. And it's **fail‑open**: if anything inside the governor errors, it falls back to transparent passthrough — the proxy will never break your request or surface its own 5xx.
 
 > Default ports: proxy `7787`, dashboard `7878`. Override with `--port` / `--dashboard-port`.
+
+---
+
+## Install via Claude Code
+
+`tokdiet` ships as a Claude Code plugin via its own marketplace:
+
+```shell
+/plugin marketplace add agiwhitelist/tokdiet
+/plugin install tokdiet
+```
+
+**What the plugin does — and what it doesn't.** The plugin ships a *lightweight
+metering hook* plus a `/tokdiet` command. The hook runs on every tool call
+(`PreToolUse` + `PostToolUse`) and logs tool I/O byte sizes to
+`~/.tokdiet/tool-meter.log`. **It does not save tokens by itself** — a plugin
+can't set `ANTHROPIC_BASE_URL` for the Claude Code process, so it can't route
+your traffic through the compacting proxy.
+
+The actual token savings come from the **proxy**. Start it and point Claude Code
+at it (this is what gives you the ~−71% token reduction):
+
+```bash
+npx tokdiet start
+export ANTHROPIC_BASE_URL=http://localhost:7787   # then launch Claude Code from this shell
+```
+
+View metered tokens, cost, and savings any time with `npx tokdiet report`, or run
+`/tokdiet` inside Claude Code for these instructions.
 
 ---
 
@@ -155,7 +194,33 @@ Run `tokdiet init` to create `tokdiet.config.json`, or pass one with `--config`.
 
 ## Dashboard
 
-With the proxy running, open **http://localhost:7878** — a single self‑contained page that streams live updates over SSE (loopback only; your cost data never leaves the machine). Five screens: **Live session**, **Savings**, **Quality** (degradation + safe‑mode status), **By tool & repo**, and **Strategy leaderboard**.
+With the proxy running, open **http://localhost:7878** — a single self‑contained page that streams live updates over SSE (loopback only; your cost data never leaves the machine):
+
+```
+┌─ tokdiet ─────────────────────────────────────────  ● live · :7878 ─┐
+│                                                                       │
+│  SESSION  claude-code › my-repo › MiniMax-M3                          │
+│  context  ███████████████████░░░░░░░░░░  64%   128,402 / 200,000 tok  │
+│                                                                       │
+│  ┌── TODAY ────────────────┐   ┌── SAVED (cumulative) ─────────────┐  │
+│  │ sent     1.43M tok       │   │  $12.40  ▁▂▃▅▆▇█  ↑ saving $1.07/h │  │
+│  │ saved    3.64M tok       │   │  3.6M tokens never left this box  │  │
+│  │ spend    $0.43           │   │  −71.8%  on real traffic          │  │
+│  └──────────────────────────┘   └───────────────────────────────────┘  │
+│                                                                       │
+│  QUALITY GUARD   measured degradation 0.4%  ┃▏▏▏▏▏▏▏▏░░┃ budget 2.0%  │
+│                  ▁▁▂▁▁▁▂▁▁▁  72 shadow-evals   safe-mode ● ON · OK     │
+│                                                                       │
+│  STRATEGY LEADERBOARD            fires    tokens saved     Δ quality   │
+│   ▸ dedup          ███████████    312       1.91M           +0.0%      │
+│   ▸ elision        ██████         168       1.42M           +0.6%      │
+│   ▸ midSummarize   · off ·          0          —              —        │
+│                                                                       │
+│  BY TOOL   claude-code ██████████ $0.31   cursor ███ $0.09  codex ▍$03 │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+Five live screens: **Live session**, **Savings**, **Quality** (degradation + safe‑mode status), **By tool & repo**, and **Strategy leaderboard** — all updating in real time over SSE.
 
 ---
 
