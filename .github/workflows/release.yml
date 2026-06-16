@@ -1,0 +1,30 @@
+name: Release
+
+# Publishes to npm when you push a version tag (e.g. `git tag v0.1.0 && git push --tags`).
+# This sidesteps interactive 2FA entirely: it authenticates with the NPM_TOKEN repo
+# secret. Use an npm Automation token, or a Granular token with "bypass 2FA" enabled
+# (Settings -> Access Tokens). Add it under: repo Settings -> Secrets and variables ->
+# Actions -> New repository secret -> name NPM_TOKEN.
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+      - run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
