@@ -1,0 +1,63 @@
+{
+  "name": "tokdiet",
+  "version": "0.1.0",
+  "description": "tokdiet — a local proxy that meters tokens & cost, compacts bloated context, and proves quality didn't drop. ccusage that shrinks the bill — without losing quality.",
+  "type": "module",
+  "bin": {
+    "tokdiet": "dist/cli.js",
+    "td": "dist/cli.js"
+  },
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "pricing.json",
+    "src/dashboard/index.html",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/copy-assets.mjs",
+    "dev": "tsc -w -p tsconfig.json",
+    "start": "node dist/cli.js start",
+    "report": "node dist/cli.js report",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "keywords": [
+    "tokdiet",
+    "claude",
+    "claude-code",
+    "tokens",
+    "cost",
+    "proxy",
+    "context",
+    "compaction",
+    "anthropic",
+    "openai",
+    "llm",
+    "ccusage"
+  ],
+  "dependencies": {
+    "better-sqlite3": "^11.8.1",
+    "commander": "^12.1.0",
+    "tiktoken": "^1.0.18",
+    "undici": "^6.21.0"
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/tokenizer": "^0.0.4"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  },
+  "license": "MIT"
+}

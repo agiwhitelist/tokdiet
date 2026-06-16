@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>tokdiet</title>
+<style>
+  :root {
+    --bg: #0a0d14;
+    --panel: #11151f;
+    --panel-2: #161b27;
+    --border: #232a3a;
+    --text: #e7ecf3;
+    --muted: #8a93a6;
+    --accent: #5eead4;
+    --accent-2: #7c9cff;
+    --good: #34d399;
+    --bad: #f87171;
+    --warn: #fbbf24;
+    --shadow: 0 1px 0 rgba(255,255,255,0.03), 0 8px 24px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: radial-gradient(1200px 600px at 80% -10%, #15203a 0%, var(--bg) 55%);
+    color: var(--text);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+    padding: 1.4rem 1.8rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .brand { display: flex; align-items: baseline; gap: .6rem; }
+  .brand h1 { font-size: 1.25rem; margin: 0; letter-spacing: -0.01em; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); transition: background .3s, box-shadow .3s; align-self: center; }
+  .brand .dot.live { background: var(--good); box-shadow: 0 0 0 3px rgba(52,211,153,.18); }
+  .tagline { color: var(--muted); font-size: .85rem; font-style: italic; }
+  main {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1rem;
+    padding: 1.4rem 1.8rem 2.4rem;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .card {
+    background: linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.1rem 1.2rem;
+    box-shadow: var(--shadow);
+    min-width: 0;
+  }
+  .card h2 {
+    font-size: .72rem; text-transform: uppercase; letter-spacing: .12em;
+    color: var(--muted); margin: 0 0 .9rem; font-weight: 600;
+  }
+  .span-4 { grid-column: span 4; }
+  .span-6 { grid-column: span 6; }
+  .span-8 { grid-column: span 8; }
+  .span-12 { grid-column: span 12; }
+  @media (max-width: 900px) {
+    .span-4, .span-6, .span-8 { grid-column: span 12; }
+  }
+  .big {
+    font-size: 2.4rem; font-weight: 700; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+  .big.accent { color: var(--accent); }
+  .big.good { color: var(--good); }
+  .sub { color: var(--muted); font-size: .82rem; margin-top: .25rem; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin: .35rem 0; }
+  .row .k { color: var(--muted); }
+  .row .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .bar {
+    position: relative; height: 12px; border-radius: 99px;
+    background: #0c0f17; border: 1px solid var(--border); overflow: hidden; margin-top: .7rem;
+  }
+  .bar > span {
+    position: absolute; inset: 0 auto 0 0; width: 0%;
+    background: linear-gradient(90deg, var(--accent-2), var(--accent));
+    border-radius: 99px; transition: width .5s ease, background .4s;
+  }
+  .bar.warn > span { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+  .bar.danger > span { background: linear-gradient(90deg, #ef4444, #f87171); }
+  .badge {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .3rem .7rem; border-radius: 99px; font-weight: 600; font-size: .85rem;
+    border: 1px solid transparent;
+  }
+  .badge .pip { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .badge.ok { color: var(--good); background: rgba(52,211,153,.10); border-color: rgba(52,211,153,.30); }
+  .badge.tripped { color: var(--bad); background: rgba(248,113,113,.10); border-color: rgba(248,113,113,.30); }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+  td.num, th.num { text-align: right; }
+  tbody tr:last-child td { border-bottom: none; }
+  .empty { color: var(--muted); font-style: italic; padding: .6rem .4rem; }
+  .tag {
+    display: inline-block; padding: .1rem .5rem; border-radius: 6px; font-size: .75rem;
+    background: rgba(124,156,255,.12); color: var(--accent-2); border: 1px solid rgba(124,156,255,.22);
+  }
+  .deg-good { color: var(--good); }
+  .deg-warn { color: var(--warn); }
+  .deg-bad { color: var(--bad); }
+  footer { color: var(--muted); text-align: center; padding: 0 1rem 2rem; font-size: .78rem; }
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="dot" id="liveDot" title="connection"></span>
+      <h1>tokdiet</h1>
+    </div>
+    <div class="tagline">ccusage that shrinks the bill — without losing quality.</div>
+  </header>
+
+  <main>
+    <!-- (a) Live session -->
+    <section class="card span-4">
+      <h2>Live session</h2>
+      <div class="big accent" id="sessTokens">0</div>
+      <div class="sub">tokens this session</div>
+      <div class="row"><span class="k">Spend</span><span class="v" id="sessCost">$0.00</span></div>
+      <div class="row"><span class="k">Window utilization</span><span class="v" id="utilPct">0%</span></div>
+      <div class="bar" id="utilBar"><span></span></div>
+    </section>
+
+    <!-- (b) Savings -->
+    <section class="card span-4">
+      <h2>Savings</h2>
+      <div class="big good" id="savedUSD">$0.00</div>
+      <div class="sub">cumulative cost saved</div>
+      <div class="row"><span class="k">Tokens saved</span><span class="v" id="tokensSaved">0</span></div>
+      <div class="row"><span class="k">Quality-guarantee cost</span><span class="v" id="shadowCost">$0.00</span></div>
+    </section>
+
+    <!-- (c) Quality -->
+    <section class="card span-4">
+      <h2>Quality</h2>
+      <div class="big" id="degPct">—</div>
+      <div class="sub">latest measured degradation</div>
+      <div class="row" style="margin-top:.9rem">
+        <span class="k">Safe mode</span>
+        <span class="badge ok" id="safeBadge"><span class="pip"></span><span id="safeText">OK</span></span>
+      </div>
+      <div class="sub" id="safeReason"></div>
+    </section>
+
+    <!-- (d) By tool & repo -->
+    <section class="card span-6">
+      <h2>By tool &amp; repo</h2>
+      <table>
+        <thead><tr><th>Source</th><th class="num">Requests</th><th class="num">Cost</th></tr></thead>
+        <tbody id="bySource"><tr><td class="empty" colspan="3">No traffic yet.</td></tr></tbody>
+      </table>
+    </section>
+
+    <!-- (e) Strategy leaderboard -->
+    <section class="card span-6">
+      <h2>Strategy leaderboard</h2>
+      <table>
+        <thead><tr><th>Strategy</th><th class="num">Uses</th><th class="num">Tokens saved</th><th class="num">Avg degradation</th></tr></thead>
+        <tbody id="byStrategy"><tr><td class="empty" colspan="4">No compaction yet.</td></tr></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>tokdiet — live telemetry over Server-Sent Events.</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  // ── Formatting helpers ────────────────────────────────────────────────────
+  const usd = (n) => "$" + (Number.isFinite(+n) ? +n : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const usd4 = (n) => "$" + (Number.isFinite(+n) ? +n : 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  const int = (n) => (Number.isFinite(+n) ? Math.round(+n) : 0).toLocaleString();
+  const pct1 = (n) => (Number.isFinite(+n) ? +n : 0).toFixed(1) + "%";
+  const $ = (id) => document.getElementById(id);
+
+  // ── Live state ──────────────────────────────────────────────────────────────
+  const state = {
+    summary: null,
+    sessionTokens: 0,
+    sessionCostUSD: 0,
+    utilization: 0,
+    latestDegradation: null,
+    safeMode: { enabled: false, reason: "" },
+    currentSessionId: null,
+  };
+
+  // ── Renderers ──────────────────────────────────────────────────────────────
+  function renderSession() {
+    $("sessTokens").textContent = int(state.sessionTokens);
+    $("sessCost").textContent = usd(state.sessionCostUSD);
+    const u = Math.max(0, Math.min(1, +state.utilization || 0));
+    $("utilPct").textContent = Math.round(u * 100) + "%";
+    const bar = $("utilBar");
+    bar.firstElementChild.style.width = (u * 100).toFixed(1) + "%";
+    bar.classList.toggle("warn", u >= 0.7 && u < 0.9);
+    bar.classList.toggle("danger", u >= 0.9);
+  }
+
+  function renderSavings() {
+    const s = state.summary || {};
+    $("savedUSD").textContent = usd4(s.estSavedUSD);
+    $("tokensSaved").textContent = int(s.totalTokensSaved);
+    $("shadowCost").textContent = usd4(s.shadowCostUSD);
+  }
+
+  function degClass(v) {
+    if (!Number.isFinite(+v)) return "";
+    if (v <= 2) return "deg-good";
+    if (v <= 10) return "deg-warn";
+    return "deg-bad";
+  }
+
+  function renderQuality() {
+    const el = $("degPct");
+    if (state.latestDegradation == null) {
+      el.textContent = "—";
+      el.className = "big";
+    } else {
+      el.textContent = pct1(state.latestDegradation);
+      el.className = "big " + degClass(state.latestDegradation);
+    }
+    const tripped = !!state.safeMode.enabled;
+    const badge = $("safeBadge");
+    badge.className = "badge " + (tripped ? "tripped" : "ok");
+    $("safeText").textContent = tripped ? "TRIPPED" : "OK";
+    $("safeReason").textContent = tripped && state.safeMode.reason ? state.safeMode.reason : "";
+  }
+
+  function renderBySource() {
+    const tbody = $("bySource");
+    const rows = (state.summary && Array.isArray(state.summary.bySource)) ? state.summary.bySource : [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td class="empty" colspan="3">No traffic yet.</td></tr>';
+      return;
+    }
+    const sorted = rows.slice().sort((a, b) => (b.costUSD || 0) - (a.costUSD || 0));
+    tbody.innerHTML = sorted.map((r) =>
+      `<tr><td>${esc(r.source || "unknown")}</td><td class="num">${int(r.requests)}</td><td class="num">${usd4(r.costUSD)}</td></tr>`
+    ).join("");
+  }
+
+  function renderByStrategy() {
+    const tbody = $("byStrategy");
+    const rows = (state.summary && Array.isArray(state.summary.byStrategy)) ? state.summary.byStrategy : [];
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td class="empty" colspan="4">No compaction yet.</td></tr>';
+      return;
+    }
+    const sorted = rows.slice().sort((a, b) => (b.tokensSaved || 0) - (a.tokensSaved || 0));
+    tbody.innerHTML = sorted.map((r) => {
+      const deg = r.avgDegradationPct;
+      const degTxt = (deg == null || !Number.isFinite(+deg)) ? "—" : `<span class="${degClass(deg)}">${pct1(deg)}</span>`;
+      return `<tr><td><span class="tag">${esc(r.strategy || "?")}</span></td><td class="num">${int(r.uses)}</td><td class="num">${int(r.tokensSaved)}</td><td class="num">${degTxt}</td></tr>`;
+    }).join("");
+  }
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, (c) => (
+      { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+    ));
+  }
+
+  function renderAll() {
+    renderSession();
+    renderSavings();
+    renderQuality();
+    renderBySource();
+    renderByStrategy();
+  }
+
+  // ── Event handling ───────────────────────────────────────────────────────────
+  function applySnapshot(payload) {
+    if (!payload || typeof payload !== "object") return;
+    state.summary = payload.summary || null;
+    const recent = Array.isArray(payload.recent) ? payload.recent : [];
+    // Seed live session from the most recent request, if any.
+    if (recent.length) {
+      const last = recent[0]; // recentRequests is newest-first.
+      state.currentSessionId = last.sessionId;
+      state.utilization = +last.utilization || 0;
+      // Sum tokens & cost for the current session from the recent window.
+      let tok = 0, cost = 0;
+      for (const r of recent) {
+        if (r.sessionId !== state.currentSessionId) continue;
+        tok += (+r.inputTokens || 0) + (+r.outputTokens || 0);
+        cost += (+r.costUSD || 0);
+      }
+      state.sessionTokens = tok;
+      state.sessionCostUSD = cost;
+      const lastDeg = recent.find((r) => r.qualityScore != null);
+      if (lastDeg) state.latestDegradation = +lastDeg.qualityScore;
+    }
+    renderAll();
+  }
+
+  function applyRequest(r) {
+    if (!r || typeof r !== "object") return;
+    // New session resets the live-session accumulators.
+    if (r.sessionId && r.sessionId !== state.currentSessionId) {
+      state.currentSessionId = r.sessionId;
+      state.sessionTokens = 0;
+      state.sessionCostUSD = 0;
+    }
+    state.sessionTokens += (+r.inputTokens || 0) + (+r.outputTokens || 0);
+    state.sessionCostUSD += (+r.costUSD || 0);
+    if (Number.isFinite(+r.utilization)) state.utilization = +r.utilization;
+    if (r.qualityScore != null) state.latestDegradation = +r.qualityScore;
+
+    // Accumulate into the running summary so tables update without a refetch.
+    bumpSummaryFromRequest(r);
+    renderAll();
+  }
+
+  function bumpSummaryFromRequest(r) {
+    if (!state.summary) state.summary = blankSummary();
+    const s = state.summary;
+    s.totalCostUSD = (+s.totalCostUSD || 0) + (+r.costUSD || 0);
+    s.totalTokensSaved = (+s.totalTokensSaved || 0) + (+r.tokensSaved || 0);
+    s.estSavedUSD = (+s.estSavedUSD || 0) + (+r.costSavedUSD || 0);
+    s.requestCount = (+s.requestCount || 0) + 1;
+    upsert(s.bySource, "source", r.source || "unknown", (row) => {
+      row.requests = (+row.requests || 0) + 1;
+      row.costUSD = (+row.costUSD || 0) + (+r.costUSD || 0);
+    });
+    upsert(s.byProvider, "provider", r.provider || "unknown", (row) => {
+      row.requests = (+row.requests || 0) + 1;
+      row.costUSD = (+row.costUSD || 0) + (+r.costUSD || 0);
+    });
+  }
+
+  function applyShadow(ev) {
+    if (!ev || typeof ev !== "object") return;
+    if (Number.isFinite(+ev.degradationPct)) state.latestDegradation = +ev.degradationPct;
+    if (!state.summary) state.summary = blankSummary();
+    const saved = (+ev.baselineTokens || 0) - (+ev.compactedTokens || 0);
+    upsert(state.summary.byStrategy, "strategy", ev.strategy || "?", (row) => {
+      const prevUses = +row.uses || 0;
+      const prevAvg = row.avgDegradationPct == null ? null : +row.avgDegradationPct;
+      row.uses = prevUses + 1;
+      row.tokensSaved = (+row.tokensSaved || 0) + (saved > 0 ? saved : 0);
+      // Running mean of degradation.
+      const d = +ev.degradationPct || 0;
+      row.avgDegradationPct = prevAvg == null ? d : (prevAvg * prevUses + d) / row.uses;
+    });
+    renderAll();
+  }
+
+  function applyCompaction(p) {
+    if (!p || typeof p !== "object") return;
+    if (Number.isFinite(+p.utilization)) state.utilization = +p.utilization;
+    if (!state.summary) state.summary = blankSummary();
+    state.summary.totalTokensSaved = (+state.summary.totalTokensSaved || 0) + (+p.tokensSaved || 0);
+    // Credit each strategy with the (split) token savings for leaderboard "uses".
+    const strategies = Array.isArray(p.strategies) ? p.strategies : [];
+    const share = strategies.length ? (+p.tokensSaved || 0) / strategies.length : 0;
+    for (const name of strategies) {
+      upsert(state.summary.byStrategy, "strategy", name, (row) => {
+        row.uses = (+row.uses || 0) + 1;
+        row.tokensSaved = (+row.tokensSaved || 0) + share;
+      });
+    }
+    renderAll();
+  }
+
+  function applySafeMode(p) {
+    if (!p || typeof p !== "object") return;
+    state.safeMode = { enabled: !!p.enabled, reason: String(p.reason || "") };
+    renderQuality();
+  }
+
+  function applyBudget(p) {
+    // Budget events surface as a brief utilization/quality refresh; the headline
+    // numbers already flow through request events. No dedicated panel needed.
+    void p;
+  }
+
+  function upsert(arr, keyName, keyVal, mut) {
+    if (!Array.isArray(arr)) return;
+    let row = arr.find((x) => x && x[keyName] === keyVal);
+    if (!row) { row = { [keyName]: keyVal }; arr.push(row); }
+    mut(row);
+  }
+
+  function blankSummary() {
+    return {
+      totalCostUSD: 0, totalTokensSaved: 0, estSavedUSD: 0, shadowCostUSD: 0,
+      avgDegradationPct: null, requestCount: 0,
+      byProvider: [], bySource: [], byStrategy: [],
+    };
+  }
+
+  function dispatch(e) {
+    if (!e || typeof e !== "object") return;
+    switch (e.type) {
+      case "snapshot": applySnapshot(e.payload); break;
+      case "request": applyRequest(e.payload); break;
+      case "shadow": applyShadow(e.payload); break;
+      case "compaction": applyCompaction(e.payload); break;
+      case "safe-mode": applySafeMode(e.payload); break;
+      case "budget": applyBudget(e.payload); break;
+      case "log": /* no-op in UI */ break;
+      default: break;
+    }
+  }
+
+  // ── SSE wiring ──────────────────────────────────────────────────────────────
+  function connect() {
+    const es = new EventSource("/events");
+    es.onopen = () => $("liveDot").classList.add("live");
+    es.onerror = () => $("liveDot").classList.remove("live");
+    es.onmessage = (msg) => {
+      let parsed;
+      try { parsed = JSON.parse(msg.data); } catch { return; }
+      dispatch(parsed);
+    };
+  }
+
+  renderAll();
+  connect();
+})();
+</script>
+</body>
+</html>

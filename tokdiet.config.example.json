@@ -1,0 +1,40 @@
+{
+  "proxyPort": 7787,
+  "dashboardPort": 7878,
+  "dashboardEnabled": true,
+  "contextWindowTokens": "auto",
+  "contextUtilizationThreshold": 0.7,
+  "onBudgetExceeded": "warn",
+  "budgets": {
+    "perSessionUSD": 5.0,
+    "perDayUSD": 50.0,
+    "perRepoMonthlyUSD": 400.0
+  },
+  "compaction": {
+    "enabled": true,
+    "strategies": {
+      "elision": true,
+      "dedup": true,
+      "midSummarize": false
+    },
+    "keepRecentToolResults": 4,
+    "minToolResultTokens": 500,
+    "elisionPreviewChars": 240,
+    "elisionSalientLines": 12,
+    "relevanceProtect": true,
+    "recoverable": true,
+    "protectCachedPrefix": true,
+    "semanticDedup": true
+  },
+  "qualityBudget": {
+    "maxDegradationPct": 2.0
+  },
+  "shadowEval": {
+    "enabled": true,
+    "sampleRate": 0.05,
+    "judge": "heuristic",
+    "judgeModel": "claude-haiku-4"
+  },
+  "safeMode": true,
+  "pageFault": { "enabled": true, "maxReinjections": 1 }
+}
