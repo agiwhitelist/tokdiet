@@ -10,3 +10,5 @@ dist/
 .context-governor/
 coverage/
 .env
+bench/results*.json
+bench/*.log

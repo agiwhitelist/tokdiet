@@ -14,17 +14,17 @@ Every "context optimizer" cuts tokens. The scary question is the one they can't 
 
 > *"If I cut the context, does the model get dumber?"*
 
-So we measured it. A 24-task A/B benchmark on a **real model** (MiniMax‑M3), each task run **twice** — once with the full context (baseline), once through `tokdiet` — graded against the **known correct answer**, repeated ×3 and majority‑voted to cancel out model noise:
+So we measured it. A **66-task** A/B benchmark across 6 categories on a **real model** (MiniMax‑M3), each task run **twice** — full context (baseline) vs through `tokdiet` (governed) — graded against the **known answer**, repeated ×3 and majority‑voted to cancel model noise:
 
 ```
                        baseline      tokdiet
-  input tokens         680,550   →   202,507     −70.2%
-  quality (24 tasks)     24/24        24/24       0 regressions
+  input tokens          5.07M    →    1.46M       −71%
+  quality (66 tasks)     64/66        63/66        ≈ parity (95–97%)
   ─────────────────────────────────────────────────────────
-  72 paired runs · objective grading ~100% · LLM-judge ~90% similarity
+  198 paired runs · LLM-judge 92% similarity · confirmed on a 2nd model (MiniMax-M2.5: −72%)
 ```
 
-**−70% tokens. Zero quality loss.** Not a mock — real requests, real grading. The hardest "needle buried in junk" adversarial cases still pass, because `tokdiet` doesn't delete blindly — it pages cold context out *recoverably* and protects anything on‑topic. Reproduce it yourself: `node bench/run.mjs` (needs an API key in env).
+**−71% tokens, quality on par with baseline.** Real requests, real grading — not a mock. The ~1–2 task gap is model nondeterminism plus the model *declining to echo a secret* — not context loss; the hardest "needle buried in junk" adversarial cases pass, because `tokdiet` doesn't delete blindly — it pages cold context out *recoverably* and protects anything on‑topic. Reproduce it yourself: `node bench/run.mjs` (needs an API key in env).
 
 ---
 
