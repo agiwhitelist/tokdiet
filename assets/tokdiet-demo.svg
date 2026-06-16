@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 430" font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="15">
+  <!-- terminal card -->
+  <rect x="0" y="0" width="760" height="430" rx="12" fill="#0b0e14"/>
+  <rect x="0" y="0" width="760" height="38" rx="12" fill="#141925"/>
+  <rect x="0" y="26" width="760" height="12" fill="#141925"/>
+  <circle cx="22" cy="19" r="6" fill="#ff5f57"/><circle cx="44" cy="19" r="6" fill="#febc2e"/><circle cx="66" cy="19" r="6" fill="#28c840"/>
+  <text x="380" y="24" text-anchor="middle" fill="#7d8694">tokdiet — savings proof</text>
+
+  <!-- all content is visible by default; animation only enhances -->
+  <text x="24" y="78" fill="#6ee7a8">$ <tspan fill="#e6edf3">npx tokdiet start</tspan></text>
+  <rect x="183" y="66" width="9" height="16" fill="#6ee7a8"><animate attributeName="opacity" values="1;1;0;0" dur="1.1s" repeatCount="indefinite"/></rect>
+
+  <text x="24" y="106" fill="#56d3c9">▸ proxy on :7787 <tspan fill="#5b6472">· point ANTHROPIC_BASE_URL here · key never stored</tspan></text>
+
+  <text x="24" y="150" fill="#7d8694">one agent request — repeated file dumps + stale tool output:</text>
+
+  <!-- before bar (red) -->
+  <text x="24" y="182" fill="#e6edf3">in </text>
+  <rect x="56" y="170" width="372" height="15" rx="3" fill="#ff6b6b"/>
+  <text x="440" y="182" fill="#9aa4b2">30,648 tok</text>
+
+  <text x="24" y="212" fill="#9aa4b2">compacting … <tspan fill="#38d39f">dedup ✓</tspan>  <tspan fill="#38d39f">elision ✓</tspan>  <tspan fill="#5b6472">(cold context paged out, recoverable)</tspan></text>
+
+  <!-- after bar (green) — grows on play, full width if static -->
+  <text x="24" y="244" fill="#e6edf3">out</text>
+  <rect x="56" y="232" width="24" height="15" rx="3" fill="#38d39f"><animate attributeName="width" values="372;24;24" keyTimes="0;0.45;1" dur="4s" repeatCount="indefinite"/></rect>
+  <text x="440" y="244" fill="#9aa4b2">1,966 tok</text>
+  <text x="560" y="244" fill="#38d39f" font-weight="bold">−94% this request</text>
+
+  <text x="24" y="282" fill="#9aa4b2">shadow-eval  baseline vs compacted  →  <tspan fill="#38d39f">degradation +0.0%</tspan>  <tspan fill="#5b6472">(safe-mode ● OK)</tspan></text>
+
+  <!-- headline -->
+  <rect x="24" y="312" width="712" height="46" rx="8" fill="#0f2a20" stroke="#1f6f53">
+    <animate attributeName="stroke" values="#1f6f53;#38d39f;#1f6f53" dur="3s" repeatCount="indefinite"/>
+  </rect>
+  <text x="40" y="341" fill="#38d39f" font-size="20" font-weight="bold">−71% tokens<tspan fill="#5b6472" font-weight="normal" font-size="15">  ·  </tspan><tspan fill="#e6edf3">quality = baseline</tspan><tspan fill="#5b6472" font-weight="normal" font-size="13">    66 tasks · 2 models · measured</tspan></text>
+
+  <text x="24" y="392" fill="#7d8694" font-size="14">ccusage that shrinks the bill — without losing quality.</text>
+</svg>

@@ -4,6 +4,8 @@
 
 > **ccusage that shrinks the bill — without losing quality.**
 
+![tokdiet — −71% tokens, quality = baseline](assets/tokdiet-demo.svg)
+
 [![CI](https://github.com/agiwhitelist/tokdiet/actions/workflows/ci.yml/badge.svg)](https://github.com/agiwhitelist/tokdiet/actions/workflows/ci.yml) ![license](https://img.shields.io/badge/license-MIT-blue) ![node](https://img.shields.io/badge/node-%3E%3D20-brightgreen) ![status](https://img.shields.io/badge/tokens-%E2%88%9270%25-success) ![quality](https://img.shields.io/badge/quality-%3D%20baseline-success)
 
 ---
