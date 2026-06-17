@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tokdiet — a field report on putting AI context on a diet</title>
+<meta name="description" content="tokdiet is a local proxy that puts your AI agent's bloated context on a diet — −71% input tokens, with measured proof that quality held. Not a mock: 66-task A/B, 2 models.">
+<link rel="canonical" href="https://agiwhitelist.github.io/tokdiet/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20rx='7'%20fill='%230d1320'/%3E%3Crect%20x='7'%20y='8'%20width='4'%20height='16'%20rx='1'%20fill='%23d96a4a'/%3E%3Crect%20x='14'%20y='13'%20width='4'%20height='11'%20rx='1'%20fill='%235aa17e'/%3E%3Crect%20x='21'%20y='18'%20width='4'%20height='6'%20rx='1'%20fill='%2338b27a'/%3E%3C/svg%3E">
+<meta property="og:type" content="website">
+<meta property="og:title" content="tokdiet — −71% tokens, quality held. Measured, not mocked.">
+<meta property="og:description" content="A local proxy that puts your AI agent's context on a diet. Watch one request lose 70%+ of its weight — and read the benchmark that proves the model didn't get dumber.">
+<meta property="og:image" content="https://raw.githubusercontent.com/agiwhitelist/tokdiet/main/assets/cover.png">
+<meta property="og:url" content="https://agiwhitelist.github.io/tokdiet/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="tokdiet — −71% tokens, quality held. Measured, not mocked.">
+<meta name="twitter:description" content="A local proxy that puts your AI agent's context on a diet. Watch one request lose 70%+ of its weight.">
+<meta name="twitter:image" content="https://raw.githubusercontent.com/agiwhitelist/tokdiet/main/assets/cover.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Spectral:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* ─────────────────────────  TOKENS  ───────────────────────── */
+  :root{
+    /* warm-paper editorial palette, neutrals tinted toward the brand green (h≈155) */
+    --paper:      oklch(0.973 0.008 95);
+    --paper-2:    oklch(0.945 0.012 96);
+    --paper-3:    oklch(0.915 0.014 96);
+    --ink:        oklch(0.225 0.018 158);
+    --ink-2:      oklch(0.405 0.018 158);
+    --ink-3:      oklch(0.555 0.016 150);
+    --rule:       oklch(0.855 0.012 110);
+    --rule-2:     oklch(0.795 0.014 110);
+    /* signal colours — meaningful, not decorative */
+    --green:      oklch(0.555 0.118 158);   /* saved / good / after */
+    --green-soft: oklch(0.918 0.040 158);
+    --verm:       oklch(0.565 0.155 36);    /* waste / before / struck */
+    --verm-soft:  oklch(0.928 0.045 46);
+
+    --space-3xs: 4px;  --space-2xs: 8px; --space-xs: 12px; --space-sm: 16px;
+    --space-md: 24px;  --space-lg: 32px; --space-xl: 48px; --space-2xl: 64px;
+    --space-3xl: 96px; --space-4xl: 144px;
+
+    --measure: 66ch;
+    --maxw: 1180px;
+
+    --serif: "Spectral", Georgia, serif;
+    --disp:  "Bricolage Grotesque", "Spectral", system-ui, sans-serif;
+    --mono:  "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+
+    --e-out:   cubic-bezier(0.16,1,0.3,1);
+    --e-quart: cubic-bezier(0.25,1,0.5,1);
+    --e-inout: cubic-bezier(0.65,0,0.35,1);
+  }
+
+  /* ─────────────────────────  BASE  ───────────────────────── */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:clamp(1rem,0.97rem + 0.3vw,1.16rem);
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    overflow-x:hidden;
+    /* faint paper grain */
+    background-image:
+      radial-gradient(oklch(0.5 0.02 150 / 0.022) 1px, transparent 1.4px);
+    background-size:4px 4px;
+  }
+  ::selection{background:var(--green-soft);color:var(--ink)}
+  a{color:inherit;text-decoration:none}
+  h1,h2,h3{font-family:var(--disp);font-weight:800;line-height:0.98;letter-spacing:-0.02em}
+  .mono{font-family:var(--mono)}
+  .wrap{width:min(100% - 2*var(--space-md), var(--maxw));margin-inline:auto}
+
+  /* eyebrow / kicker */
+  .kicker{
+    font-family:var(--mono);font-size:0.74rem;font-weight:500;
+    letter-spacing:0.22em;text-transform:uppercase;color:var(--ink-3);
+    display:flex;align-items:center;gap:var(--space-2xs);
+  }
+  .kicker .tick{width:7px;height:7px;background:var(--green);border-radius:50%}
+
+  /* hairline rule with editorial label */
+  .rule{height:1px;background:var(--rule);border:0}
+
+  /* ─────────────────────────  NAV  ───────────────────────── */
+  header.nav{
+    position:sticky;top:0;z-index:50;
+    backdrop-filter:saturate(1.1) blur(7px);
+    background:color-mix(in oklch, var(--paper) 84%, transparent);
+    border-bottom:1px solid var(--rule);
+  }
+  .nav .row{display:flex;align-items:center;justify-content:space-between;height:58px}
+  .brand{display:flex;align-items:baseline;gap:10px;font-family:var(--disp);font-weight:800;font-size:1.18rem;letter-spacing:-0.03em}
+  .brand .no{font-family:var(--mono);font-weight:500;font-size:0.7rem;letter-spacing:0.12em;color:var(--ink-3)}
+  .nav nav{display:flex;gap:var(--space-lg);font-family:var(--mono);font-size:0.78rem;letter-spacing:0.04em;color:var(--ink-2)}
+  .nav nav a{position:relative;padding-block:4px}
+  .nav nav a::after{content:"";position:absolute;left:0;right:100%;bottom:0;height:1.5px;background:var(--green);transition:right .35s var(--e-out)}
+  .nav nav a:hover::after,.nav nav a.active::after{right:0}
+  .nav nav a.active{color:var(--ink)}
+  .nav .ext{color:var(--ink)}
+  @media(max-width:760px){.nav nav{display:none}}
+
+  /* ─────────────────────────  HERO  ───────────────────────── */
+  .hero{padding-block:clamp(var(--space-2xl),9vw,var(--space-4xl)) var(--space-2xl)}
+  .hero .meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:var(--space-sm);margin-bottom:var(--space-xl)}
+  .hero .meta .right{font-family:var(--mono);font-size:0.74rem;letter-spacing:0.08em;color:var(--ink-3);text-align:right}
+  .hero h1{
+    font-size:clamp(2.7rem,3.1rem + 4.6vw,7rem);
+    max-width:16ch;
+  }
+  .hero h1 .lost{color:var(--green);font-style:normal;position:relative;white-space:nowrap}
+  .hero h1 .lost .mark{position:absolute;left:-9%;top:-16%;width:118%;height:134%;overflow:visible;pointer-events:none}
+  .hero h1 .lost .mark path{fill:none;stroke:var(--green);stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;opacity:0.9;
+    stroke-dasharray:760;stroke-dashoffset:760;animation:draw 1s var(--e-out) .55s forwards}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .hero h1 em{font-family:var(--serif);font-weight:400;font-style:italic;letter-spacing:-0.01em}
+  .hero .lede{
+    font-size:clamp(1.15rem,1.05rem + 0.6vw,1.5rem);
+    color:var(--ink-2);max-width:54ch;margin-top:var(--space-lg);
+  }
+  .hero .lede b{color:var(--ink);font-weight:500}
+  .hero .cta{display:flex;align-items:center;gap:var(--space-md);flex-wrap:wrap;margin-top:var(--space-xl)}
+  .hero .scroll-hint{font-family:var(--mono);font-size:0.76rem;letter-spacing:0.06em;color:var(--ink-3);display:flex;align-items:center;gap:8px}
+  .hero .scroll-hint .arr{display:inline-block;animation:nudge 2.4s var(--e-inout) infinite}
+  @keyframes nudge{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}
+
+  /* command chip with copy */
+  .cmd{
+    display:inline-flex;align-items:center;gap:var(--space-sm);
+    font-family:var(--mono);font-size:0.95rem;
+    background:var(--ink);color:var(--paper);
+    padding:13px 16px;border-radius:3px;cursor:pointer;
+    border:1px solid var(--ink);transition:transform .25s var(--e-out)
+  }
+  .cmd:hover{transform:translateY(-2px)}
+  .cmd .dollar{color:var(--green)}
+  .cmd .cp{font-size:0.68rem;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in oklch,var(--paper) 60%,transparent);border-left:1px solid color-mix(in oklch,var(--paper) 25%,transparent);padding-left:var(--space-sm)}
+  .cmd.copied .cp{color:var(--green)}
+
+  /* generic section frame */
+  section{padding-block:clamp(var(--space-2xl),7vw,var(--space-4xl))}
+  .sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:var(--space-md);margin-bottom:var(--space-xl);flex-wrap:wrap}
+  .sec-head h2{font-size:clamp(1.9rem,1.6rem + 2.4vw,3.4rem);max-width:18ch}
+  .sec-head .note{font-family:var(--mono);font-size:0.76rem;letter-spacing:0.08em;color:var(--ink-3);max-width:30ch;text-align:right}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(22px);transition:opacity .7s var(--e-out),transform .7s var(--e-out)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ─────────────────  DIET DEMO (signature)  ───────────────── */
+  .diet{background:var(--paper-2);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+  .diet-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:var(--space-2xl);align-items:start}
+  @media(max-width:920px){.diet-grid{grid-template-columns:1fr;gap:var(--space-xl)}}
+
+  .transcript{
+    background:var(--paper);border:1px solid var(--rule-2);border-radius:5px;
+    font-family:var(--mono);font-size:0.8rem;line-height:1.5;
+    overflow:hidden;box-shadow:0 1px 0 var(--paper-3), 0 20px 40px -34px oklch(0.3 0.03 150 / 0.5);
+  }
+  .transcript .bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--rule);color:var(--ink-3);font-size:0.72rem;letter-spacing:0.06em}
+  .transcript .bar .dots{display:flex;gap:6px}
+  .transcript .bar .dots i{width:8px;height:8px;border-radius:50%;background:var(--rule-2)}
+  .transcript .body{padding:6px 0;max-height:none}
+
+  .blk{
+    display:grid;grid-template-rows:1fr;
+    transition:grid-template-rows .55s var(--e-inout),opacity .4s var(--e-out),margin .55s var(--e-inout);
+  }
+  .blk > .blk-in{overflow:hidden;min-height:0;display:flex;justify-content:space-between;gap:var(--space-sm);
+    padding:7px 14px;border-bottom:1px dashed color-mix(in oklch,var(--rule) 70%,transparent)}
+  .blk .label{color:var(--ink-2);display:flex;flex-direction:column;gap:3px;min-width:0}
+  .blk .label .lab-main{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .blk .label .tag{color:var(--ink-3);font-size:0.7rem}
+  .blk .label .sub{color:var(--ink-3);font-size:0.71rem;opacity:0.66;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0}
+  .blk .tok{color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .blk[data-fate="keep"] .label{color:var(--ink)}
+  .blk.collapsing{grid-template-rows:0fr;opacity:0;margin-block:0}
+  /* the markers that replace removed blocks */
+  .blk[data-marker] .blk-in{border-bottom-style:solid}
+  .blk[data-kind="dedup"] .label{color:var(--green)}
+  .blk[data-kind="elision"] .label{color:var(--ink-2)}
+  .blk[data-marker] .label .glyph{color:var(--green)}
+  .blk[data-kind="elision"] .label .glyph{color:var(--ink-3)}
+  .blk[data-hidden]{display:none}
+
+  /* the meter / control column */
+  .meter h3{font-family:var(--disp);font-size:1.05rem;letter-spacing:-0.01em;margin-bottom:var(--space-xs)}
+  .meter .explain{color:var(--ink-2);font-size:0.98rem;margin-bottom:var(--space-lg);max-width:40ch}
+  .gauge{margin-bottom:var(--space-lg)}
+  .gauge .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.74rem;letter-spacing:0.05em;color:var(--ink-3);margin-bottom:6px}
+  .gauge .track{height:14px;background:var(--paper-3);border-radius:2px;overflow:hidden;position:relative}
+  .gauge .fill{height:100%;transform-origin:left;transform:scaleX(1);transition:transform 1.1s var(--e-quart)}
+  .gauge .fill.before{background:var(--verm)}
+  .gauge .fill.after{background:var(--green)}
+  .readout{display:flex;align-items:baseline;gap:var(--space-sm);font-family:var(--mono);margin-bottom:var(--space-xs)}
+  .readout .big{font-family:var(--disp);font-weight:800;font-size:clamp(2.4rem,2rem + 3vw,3.8rem);line-height:1;letter-spacing:-0.03em;font-variant-numeric:tabular-nums}
+  .readout .unit{color:var(--ink-3);font-size:0.8rem;letter-spacing:0.06em}
+  .pct{font-family:var(--mono);font-weight:700;color:var(--green);font-size:1.05rem}
+  .bill{font-family:var(--mono);font-size:0.86rem;color:var(--ink-2);margin-top:var(--space-2xs)}
+  .bill .was{color:var(--verm);text-decoration:line-through;text-decoration-thickness:1.5px}
+  .bill .now{color:var(--green);font-weight:700}
+  .controls{display:flex;gap:var(--space-sm);margin-top:var(--space-lg);flex-wrap:wrap}
+  .btn{font-family:var(--mono);font-size:0.82rem;letter-spacing:0.04em;padding:11px 18px;border-radius:3px;cursor:pointer;border:1px solid var(--ink);background:var(--ink);color:var(--paper);transition:transform .2s var(--e-out),background .2s}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.ghost{background:transparent;color:var(--ink)}
+  .btn.ghost:hover{background:var(--paper-3)}
+  .btn[disabled]{opacity:0.4;cursor:default;transform:none}
+  .legend{display:flex;gap:var(--space-md);font-family:var(--mono);font-size:0.72rem;color:var(--ink-3);margin-top:var(--space-md);flex-wrap:wrap}
+  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+  .legend .g i{background:var(--green)} .legend .v i{background:var(--verm)}
+
+  /* ─────────────────────────  PROOF  ───────────────────────── */
+  .proof-grid{display:grid;grid-template-columns:1fr 0.42fr;gap:var(--space-2xl)}
+  @media(max-width:920px){.proof-grid{grid-template-columns:1fr}}
+  table.results{width:100%;border-collapse:collapse;font-family:var(--mono)}
+  table.results caption{text-align:left;font-family:var(--mono);font-size:0.74rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);padding-bottom:var(--space-sm)}
+  table.results th,table.results td{text-align:right;padding:15px 10px;border-bottom:1px solid var(--rule);font-variant-numeric:tabular-nums;font-size:0.95rem}
+  table.results th:first-child,table.results td:first-child{text-align:left;font-family:var(--serif);font-size:1.02rem}
+  table.results thead th{font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);font-weight:500;border-bottom:1.5px solid var(--ink)}
+  table.results td.delta{color:var(--green);font-weight:700}
+  table.results tr:last-child td{border-bottom:1.5px solid var(--ink)}
+  .modeltabs{display:inline-flex;border:1px solid var(--rule-2);border-radius:3px;overflow:hidden;margin-bottom:var(--space-md);font-family:var(--mono);font-size:0.78rem}
+  .modeltabs button{padding:8px 16px;background:transparent;border:0;cursor:pointer;color:var(--ink-2);letter-spacing:0.03em}
+  .modeltabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+  .footnote{font-family:var(--serif);font-size:0.96rem;color:var(--ink-2);line-height:1.55}
+  .footnote .fn{font-family:var(--mono);color:var(--green);font-size:0.8rem;vertical-align:super}
+  .footnote h4{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:var(--space-sm);font-weight:500}
+  .repro{font-family:var(--mono);font-size:0.82rem;color:var(--ink-3);margin-top:var(--space-lg)}
+  .repro code{color:var(--ink);background:var(--paper-3);padding:2px 7px;border-radius:3px}
+
+  /* ─────────────────────────  HOW  ───────────────────────── */
+  .pipe{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--rule-2);border-radius:5px;overflow:hidden;margin-bottom:var(--space-xl)}
+  .stage{flex:1 1 0;min-width:120px;padding:var(--space-md);cursor:pointer;background:var(--paper);border-right:1px solid var(--rule);transition:background .3s var(--e-out)}
+  .stage:last-child{border-right:0}
+  .stage .n{font-family:var(--mono);font-size:0.68rem;color:var(--ink-3);letter-spacing:0.1em}
+  .stage .nm{font-family:var(--disp);font-weight:600;font-size:1.02rem;margin-top:5px;letter-spacing:-0.01em}
+  .stage[aria-selected="true"],.stage:hover{background:var(--green-soft)}
+  .stage[aria-selected="true"] .nm{color:var(--green)}
+  .stage-explain{font-family:var(--serif);font-size:1.08rem;color:var(--ink-2);max-width:60ch;min-height:3.2em}
+  .stage-explain b{color:var(--ink);font-weight:500}
+  @media(max-width:760px){.pipe{flex-direction:column}.stage{border-right:0;border-bottom:1px solid var(--rule)}.stage:last-child{border-bottom:0}}
+
+  .vmem{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-lg);margin-top:var(--space-2xl)}
+  @media(max-width:680px){.vmem{grid-template-columns:1fr}}
+  .vmem .col h4{font-family:var(--mono);font-size:0.74rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:var(--space-sm)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-family:var(--mono);font-size:0.74rem;padding:6px 10px;border-radius:3px;border:1px solid var(--rule-2)}
+  .chip.hot{background:var(--paper);color:var(--ink);border-color:var(--ink-3)}
+  .chip.cold{background:transparent;color:var(--ink-3);border-style:dashed}
+  .chip.cold .s{color:var(--green)}
+
+  /* ─────────────────────────  BRAKE  ───────────────────────── */
+  .brake{background:var(--ink);color:var(--paper)}
+  .brake .kicker{color:color-mix(in oklch,var(--paper) 62%,transparent)}
+  .brake .kicker .tick{background:var(--green)}
+  .brake h2{color:var(--paper)}
+  .brake .lead{font-size:clamp(1.6rem,1.3rem + 2vw,2.7rem);font-family:var(--disp);font-weight:800;letter-spacing:-0.02em;line-height:1.04;max-width:20ch;margin-bottom:var(--space-2xl)}
+  .brake .lead .g{color:var(--green)}
+  .mechs{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--space-xl)}
+  @media(max-width:760px){.mechs{grid-template-columns:1fr;gap:var(--space-lg)}}
+  .mech .num{font-family:var(--mono);font-size:0.74rem;letter-spacing:0.1em;color:var(--green)}
+  .mech h3{color:var(--paper);font-size:1.3rem;margin:var(--space-2xs) 0 var(--space-xs)}
+  .mech p{color:color-mix(in oklch,var(--paper) 72%,transparent);font-size:0.99rem}
+  /* live degradation gauge */
+  .degrade{margin-top:var(--space-2xl);border-top:1px solid color-mix(in oklch,var(--paper) 18%,transparent);padding-top:var(--space-lg)}
+  .degrade .lab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:0.76rem;color:color-mix(in oklch,var(--paper) 66%,transparent);margin-bottom:8px}
+  .degrade .track{height:10px;background:color-mix(in oklch,var(--paper) 14%,transparent);border-radius:2px;position:relative;overflow:hidden}
+  .degrade .budget{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--verm);right:0}
+  .degrade .fill{height:100%;width:0;background:var(--green);transition:width 2.4s var(--e-quart)}
+  .degrade .status{font-family:var(--mono);font-size:0.78rem;margin-top:10px;color:var(--green)}
+
+  /* ─────────────────────────  HONESTY  ───────────────────────── */
+  .honest-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-2xl)}
+  @media(max-width:760px){.honest-grid{grid-template-columns:1fr;gap:var(--space-xl)}}
+  .worth{padding:var(--space-lg);border-radius:5px}
+  .worth.yes{background:var(--green-soft)}
+  .worth.no{background:var(--paper-2);border:1px solid var(--rule)}
+  .worth .h{font-family:var(--mono);font-size:0.76rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:var(--space-sm)}
+  .worth.yes .h{color:var(--green)} .worth.no .h{color:var(--ink-3)}
+  .worth h3{font-size:1.45rem;margin-bottom:var(--space-sm)}
+  .worth p{color:var(--ink-2);font-size:1rem}
+  .guarantees{display:flex;gap:var(--space-lg);flex-wrap:wrap;margin-top:var(--space-xl);font-family:var(--mono);font-size:0.82rem;color:var(--ink-2)}
+  .guarantees span .g{color:var(--green)}
+
+  /* ─────────────────────────  START  ───────────────────────── */
+  .steps{counter-reset:step;display:grid;gap:var(--space-lg)}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:var(--space-md);align-items:start}
+  .step .idx{counter-increment:step;font-family:var(--disp);font-weight:800;font-size:1.6rem;color:var(--green);line-height:1}
+  .step .idx::before{content:counter(step,decimal-leading-zero)}
+  .step .t{font-family:var(--serif);color:var(--ink-2);margin-bottom:var(--space-xs)}
+  .step .t b{color:var(--ink);font-weight:500}
+  pre.code{font-family:var(--mono);font-size:0.86rem;background:var(--ink);color:var(--paper);padding:14px 16px;border-radius:4px;overflow-x:auto;position:relative;cursor:pointer}
+  pre.code .c-comment{color:color-mix(in oklch,var(--paper) 48%,transparent)}
+  pre.code .c-var{color:var(--green)}
+  pre.code .cp{position:absolute;top:8px;right:10px;font-size:0.64rem;letter-spacing:0.1em;text-transform:uppercase;color:color-mix(in oklch,var(--paper) 55%,transparent)}
+  pre.code.copied .cp{color:var(--green)}
+  .providers{display:flex;gap:var(--space-md);flex-wrap:wrap;margin-top:var(--space-xl);font-family:var(--mono);font-size:0.8rem;color:var(--ink-2)}
+  .providers .p{padding:7px 12px;border:1px solid var(--rule-2);border-radius:3px}
+
+  /* ─────────────────────────  FOOTER  ───────────────────────── */
+  footer{border-top:1px solid var(--rule);padding-block:var(--space-2xl)}
+  .foot-grid{display:flex;justify-content:space-between;gap:var(--space-xl);flex-wrap:wrap;align-items:flex-start}
+  .foot-grid .links{display:flex;gap:var(--space-xl);font-family:var(--mono);font-size:0.84rem}
+  .foot-grid .links a{color:var(--ink-2);display:flex;flex-direction:column;gap:3px}
+  .foot-grid .links a b{color:var(--ink);font-weight:700;letter-spacing:0.02em}
+  .foot-grid .links a:hover b{color:var(--green)}
+  .colophon{font-family:var(--mono);font-size:0.74rem;color:var(--ink-3);max-width:34ch;line-height:1.7}
+
+  /* ─────────────────────────  REDUCED MOTION  ───────────────────────── */
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important;scroll-behavior:auto!important}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ───────────────  NAV  ─────────────── -->
+<header class="nav">
+  <div class="wrap row">
+    <div class="brand">tokdiet <span class="no">FIELD REPORT № 001</span></div>
+    <nav>
+      <a href="#diet">the diet</a>
+      <a href="#proof">the proof</a>
+      <a href="#how">how</a>
+      <a href="#start">start</a>
+      <a class="ext" href="https://github.com/agiwhitelist/tokdiet">github ↗</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ───────────────  HERO  ─────────────── -->
+<section class="hero wrap">
+  <div class="meta reveal">
+    <div class="kicker"><span class="tick"></span> measured, not mocked</div>
+    <div class="right">66-task A/B · 2 models<br>MiniMax-M3 · M2.5</div>
+  </div>
+  <h1 class="reveal">An AI agent's context, <em>on a diet.</em><br>It lost <span class="lost">71%<svg class="mark" viewBox="0 0 240 120" aria-hidden="true"><path d="M28,72 C30,40 96,22 158,24 C206,26 224,40 220,58 C216,82 150,100 86,98 C44,96 22,86 26,66"/></svg></span> of its weight —<br>and kept its mind.</h1>
+  <p class="lede reveal">Your agent re-sends the same file dump five times and drags stale tool output through every turn. <b>tokdiet</b> is a local proxy that puts that context on a diet — and then <b>proves the model didn't get dumber.</b></p>
+  <div class="cta reveal">
+    <button class="cmd" data-copy="npx tokdiet start"><span><span class="dollar">$</span> npx tokdiet start</span><span class="cp">copy</span></button>
+    <a class="scroll-hint" href="#diet"><span class="arr">↓</span> watch one request lose the weight</a>
+  </div>
+</section>
+
+<!-- ───────────────  THE DIET (signature interactive)  ─────────────── -->
+<section class="diet" id="diet">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>Watch one request<br>lose the weight.</h2>
+      <p class="note">One real agent request. Same file pasted 5×, stale logs, duplicate configs. Press run — nothing is deleted, it's collapsed or paged out, recoverably.</p>
+    </div>
+    <div class="diet-grid">
+      <!-- transcript -->
+      <div class="transcript reveal" aria-label="agent request context">
+        <div class="bar"><span class="dots"><i></i><i></i><i></i></span><span id="ctx-state">CONTEXT · before diet</span></div>
+        <div class="body" id="transcript"></div>
+      </div>
+      <!-- meter + controls -->
+      <div class="meter reveal">
+        <h3>Input tokens, this request</h3>
+        <p class="explain">The meter is real arithmetic on the blocks at left — not a canned number.</p>
+        <div class="readout">
+          <span class="big mono" id="tok-count">0</span>
+          <span class="unit">tok</span>
+          <span class="pct" id="tok-pct"></span>
+        </div>
+        <div class="bill" id="bill"></div>
+        <div class="gauge" style="margin-top:var(--space-lg)">
+          <div class="lab"><span>weight</span><span id="gauge-lab">full context</span></div>
+          <div class="track"><div class="fill before" id="gauge-fill"></div></div>
+        </div>
+        <div class="controls">
+          <button class="btn" id="run-diet">Run the diet ▸</button>
+          <button class="btn ghost" id="reset-diet" disabled>Reset</button>
+        </div>
+        <div class="legend">
+          <span class="g"><i></i>kept / saved</span>
+          <span class="v"><i></i>waste removed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────  PROOF  ─────────────── -->
+<section id="proof" class="wrap">
+  <div class="sec-head reveal">
+    <h2>The scary question, answered.</h2>
+    <p class="note">"If I cut the context, does the model get dumber?" So we measured it — twice, on two models.</p>
+  </div>
+  <div class="proof-grid">
+    <div class="reveal">
+      <div class="modeltabs" role="tablist" aria-label="model">
+        <button role="tab" aria-selected="true" data-model="m3">MiniMax-M3</button>
+        <button role="tab" aria-selected="false" data-model="m25">MiniMax-M2.5</button>
+      </div>
+      <table class="results">
+        <caption id="res-cap">Primary model · 198 paired runs · ×3 majority-voted</caption>
+        <thead><tr><th>metric</th><th>baseline</th><th>tokdiet</th><th>Δ</th></tr></thead>
+        <tbody id="res-body"></tbody>
+      </table>
+      <p class="repro">Reproduce it yourself: <code>node bench/run.mjs</code> &nbsp;·&nbsp; needs an API key in env.</p>
+    </div>
+    <aside class="footnote reveal">
+      <h4>On the 1-task gap — being honest</h4>
+      <p>Baseline solved 64; governed 63.<span class="fn">†</span> We won't call that "zero quality loss," because that isn't what the data says.</p>
+      <p style="margin-top:var(--space-md)"><span class="fn">†</span> Across 198 runs the gap lands inside model nondeterminism, plus the model <em>declining to echo a secret</em> — a behaviour change, not context loss. The hardest "needle buried in junk" cases <b style="color:var(--green)">pass</b>. Verdict: within model noise. Not lossless.</p>
+    </aside>
+  </div>
+</section>
+
+<!-- ───────────────  HOW  ─────────────── -->
+<section id="how" class="wrap" style="border-top:1px solid var(--rule)">
+  <div class="sec-head reveal">
+    <h2>Not "delete and pray."<br>Context as virtual memory.</h2>
+    <p class="note">Hover the pipeline. Hot context stays resident; cold context is paged out to SQLite — recoverable, by id.</p>
+  </div>
+  <div class="pipe reveal" id="pipe" role="tablist"></div>
+  <p class="stage-explain reveal" id="stage-explain"></p>
+
+  <div class="vmem reveal">
+    <div class="col">
+      <h4>● resident — hot</h4>
+      <div class="chips">
+        <span class="chip hot">system prompt</span>
+        <span class="chip hot">current question</span>
+        <span class="chip hot">latest file read</span>
+        <span class="chip hot">pinned answer</span>
+        <span class="chip hot">on-topic results</span>
+      </div>
+    </div>
+    <div class="col">
+      <h4>◇ paged out — cold (recoverable)</h4>
+      <div class="chips">
+        <span class="chip cold">stale <span class="s">test logs</span></span>
+        <span class="chip cold">old <span class="s">git output</span></span>
+        <span class="chip cold">dup file copies <span class="s">×4</span></span>
+        <span class="chip cold">repeated paste <span class="s">×1</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────  BRAKE  ─────────────── -->
+<section class="brake">
+  <div class="wrap">
+    <div class="kicker reveal"><span class="tick"></span> the quality brake</div>
+    <p class="lead reveal" style="margin-top:var(--space-md)">Savings stop <span class="g">before</span> quality does.</p>
+    <div class="mechs">
+      <div class="mech reveal">
+        <div class="num">01</div><h3>Shadow-eval</h3>
+        <p>Re-runs a sampled 5% of compacted requests against the un-compacted baseline and scores the divergence, 0 (identical) to 100. The measurement, not a guess.</p>
+      </div>
+      <div class="mech reveal">
+        <div class="num">02</div><h3>Quality budget</h3>
+        <p>A hard ceiling on measured degradation — 2% by default. As it nears the line, the compactor restricts itself to its safest strategies.</p>
+      </div>
+      <div class="mech reveal">
+        <div class="num">03</div><h3>Safe-mode</h3>
+        <p>Cross the budget and the offending strategy is switched off, per-strategy. The proxy would rather spend your tokens than spend your quality.</p>
+      </div>
+    </div>
+    <div class="degrade reveal" id="degrade">
+      <div class="lab"><span>measured degradation</span><span>budget 2.0%</span></div>
+      <div class="track"><div class="fill" id="degrade-fill"></div><div class="budget"></div></div>
+      <div class="status" id="degrade-status">● safe-mode armed · 0.4% observed</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────  HONESTY  ─────────────── -->
+<section class="wrap">
+  <div class="sec-head reveal">
+    <h2>Where it's worth it.<br>Where it isn't.</h2>
+    <p class="note">A token diet only cuts a bill that's priced per token. We'd rather say so up front.</p>
+  </div>
+  <div class="honest-grid">
+    <div class="worth yes reveal">
+      <div class="h">real dollar cut</div>
+      <h3>Pay-per-token keys</h3>
+      <p>MiniMax, the Anthropic API, OpenAI — fewer input tokens is a smaller invoice. The −71% lands on your bill.</p>
+    </div>
+    <div class="worth no reveal">
+      <div class="h">metering, not money</div>
+      <h3>Flat subscriptions</h3>
+      <p>On a flat Claude plan there are no per-token charges to cut. The value is the live dashboard, budgets, and seeing exactly where tokens go.</p>
+    </div>
+  </div>
+  <div class="guarantees reveal">
+    <span><span class="g">→</span> keys forwarded only, never stored or logged</span>
+    <span><span class="g">→</span> loopback bind only</span>
+    <span><span class="g">→</span> fail-open: a hiccup never breaks your request</span>
+    <span><span class="g">→</span> cache- &amp; thinking-safe for Claude Code</span>
+  </div>
+</section>
+
+<!-- ───────────────  START  ─────────────── -->
+<section id="start" class="diet" style="border-top:1px solid var(--rule)">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <h2>Sixty seconds.</h2>
+      <p class="note">No account. No telemetry. The proxy + a live dashboard on :7878.</p>
+    </div>
+    <div class="steps">
+      <div class="step reveal"><div class="idx"></div><div>
+        <div class="t">Start the proxy — <b>nothing to install</b>.</div>
+        <pre class="code" data-copy="npx tokdiet start"><span class="cp">copy</span><span class="c-comment"># proxy on :7787, dashboard on :7878 (loopback only)</span>
+$ npx tokdiet start</pre>
+      </div></div>
+      <div class="step reveal"><div class="idx"></div><div>
+        <div class="t">Point your agent at it <b>instead of the real API</b>.</div>
+        <pre class="code" data-copy="export ANTHROPIC_BASE_URL=http://localhost:7787
+export OPENAI_BASE_URL=http://localhost:7787/v1"><span class="cp">copy</span>$ export <span class="c-var">ANTHROPIC_BASE_URL</span>=http://localhost:7787
+$ export <span class="c-var">OPENAI_BASE_URL</span>=http://localhost:7787/v1</pre>
+      </div></div>
+      <div class="step reveal"><div class="idx"></div><div>
+        <div class="t">Run Claude Code, Cursor, Codex — <b>as usual</b>. Open <span class="mono">localhost:7878</span> and watch it tick.</div>
+      </div></div>
+    </div>
+    <div class="providers reveal">
+      <span class="p">Anthropic</span><span class="p">OpenAI</span><span class="p">Gemini</span><span class="p">MiniMax</span><span class="p">+ any compatible API</span>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────  FOOTER  ─────────────── -->
+<footer class="wrap">
+  <div class="foot-grid">
+    <div class="links">
+      <a href="https://github.com/agiwhitelist/tokdiet"><b>GitHub</b><span>source · MIT</span></a>
+      <a href="https://www.npmjs.com/package/tokdiet"><b>npm</b><span>tokdiet</span></a>
+      <a href="https://dev.to/agiwhitelist/i-cut-an-ai-agents-input-tokens-by-71-and-quality-held-heres-the-66-task-benchmark-2b97"><b>The write-up</b><span>full method ↗</span></a>
+    </div>
+    <p class="colophon">ccusage that shrinks the bill — without losing quality. Made for people who actually read their token bill.</p>
+  </div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- reveal on scroll ---------- */
+  var io = new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target);} });
+  },{threshold:0.12, rootMargin:"0px 0px -8% 0px"});
+  document.querySelectorAll(".reveal").forEach(function(el){ io.observe(el); });
+
+  /* ---------- copy buttons ---------- */
+  function wireCopy(el){
+    el.addEventListener("click", function(){
+      var txt = el.getAttribute("data-copy");
+      navigator.clipboard && navigator.clipboard.writeText(txt);
+      el.classList.add("copied");
+      var cp = el.querySelector(".cp"); var prev = cp ? cp.textContent : null;
+      if(cp) cp.textContent = "copied ✓";
+      setTimeout(function(){ el.classList.remove("copied"); if(cp) cp.textContent = prev; }, 1400);
+    });
+  }
+  document.querySelectorAll("[data-copy]").forEach(wireCopy);
+
+  /* ---------- the diet demo ---------- */
+  // fate: keep | dedup (collapse, earlier copy) | elision (page out old tool result)
+  var BLOCKS = [
+    {label:"system prompt",                 tag:"system",       tok:1240, fate:"keep",   sub:"You are a coding agent. Tools: read, edit, bash…"},
+    {label:'user · "refactor the auth module"', tag:"user",     tok:160,  fate:"keep"},
+    {label:"tool · read src/auth.ts",        tag:"v1",           tok:4820, fate:"dedup",  sub:"export function verifyToken(req){ …  142 lines"},
+    {label:"assistant · reading the file…",  tag:"turn",         tok:240,  fate:"keep"},
+    {label:"tool · read src/auth.ts",        tag:"v2 — identical", tok:4820, fate:"dedup", sub:"export function verifyToken(req){ …  142 lines"},
+    {label:"tool · npm test (verbose)",      tag:"stale",        tok:6210, fate:"elision",sub:"PASS 38 · FAIL 0  …  1,204 lines of stdout"},
+    {label:"tool · read src/auth.ts",        tag:"v3 — identical", tok:4860, fate:"dedup", sub:"export function verifyToken(req){ …  142 lines"},
+    {label:"tool · git log -p",              tag:"stale",        tok:2930, fate:"elision",sub:"commit a91f3e9 …  1,860 lines of diff"},
+    {label:"user · pasted config block",     tag:"paste",        tok:2140, fate:"dedup",  sub:'{ "model":"…", "maxTokens":8192, "tools":[…'},
+    {label:"user · pasted config block",     tag:"again",        tok:2140, fate:"dedup",  sub:'{ "model":"…", "maxTokens":8192, "tools":[…'},
+    {label:'user · "now fix the token-expiry bug"', tag:"current Q", tok:110, fate:"keep"},
+    {label:"tool · read src/auth.ts",        tag:"latest — kept verbatim", tok:4860, fate:"keep", sub:"export function verifyToken(req){ …  142 lines"}
+  ];
+  var DEDUP_MARKER_TOK = 40, ELISION_STUB_TOK = 120;
+  var PRICE_PER_M = 1.5; // illustrative $/1M input tok
+
+  var before = BLOCKS.reduce(function(s,b){return s+b.tok;},0);
+  // after: keeps verbatim + one dedup marker (collapses all dup copies) + one stub per elided block
+  var keepSum = BLOCKS.filter(function(b){return b.fate==="keep";}).reduce(function(s,b){return s+b.tok;},0);
+  var elided  = BLOCKS.filter(function(b){return b.fate==="elision";});
+  var after = keepSum + DEDUP_MARKER_TOK + elided.length*ELISION_STUB_TOK;
+  var pct = Math.round((before-after)/before*100);
+
+  var tEl = document.getElementById("transcript");
+  function fmt(n){ return n.toLocaleString("en-US"); }
+  function money(tok){ return "$" + (tok/1e6*PRICE_PER_M).toFixed(4); }
+
+  // render blocks
+  BLOCKS.forEach(function(b,i){
+    var d = document.createElement("div");
+    d.className="blk"; d.setAttribute("data-fate",b.fate); d.setAttribute("data-i",i);
+    d.innerHTML = '<div class="blk-in"><span class="label"><span class="lab-main">'+b.label+' <span class="tag">'+b.tag+'</span></span>'+(b.sub?'<span class="sub">'+b.sub+'</span>':'')+'</span><span class="tok">'+fmt(b.tok)+' tok</span></div>';
+    tEl.appendChild(d);
+  });
+  // create the two markers (hidden until diet runs), positioned after their group
+  function makeMarker(kind, text, tok){
+    var d=document.createElement("div");
+    d.className="blk"; d.setAttribute("data-marker","1"); d.setAttribute("data-kind",kind); d.setAttribute("data-hidden","1");
+    d.style.opacity="0";
+    d.innerHTML='<div class="blk-in"><span class="label"><span class="glyph">'+(kind==="dedup"?"↑":"◇")+'</span> '+text+'</span><span class="tok">'+fmt(tok)+' tok</span></div>';
+    return d;
+  }
+  var dedupCount = BLOCKS.filter(function(b){return b.fate==="dedup";}).length;
+  var mkDedup = makeMarker("dedup", dedupCount+" duplicate copies collapsed — latest kept verbatim", DEDUP_MARKER_TOK);
+  // insert dedup marker right before the last (kept) block
+  tEl.insertBefore(mkDedup, tEl.children[tEl.children.length-1]);
+  var elisionMarkers = elided.map(function(b){
+    var m = makeMarker("elision", "paged out — "+b.label.replace("tool · ","")+" · recoverable, id=cg-…", ELISION_STUB_TOK);
+    var ref = tEl.querySelector('.blk[data-i="'+BLOCKS.indexOf(b)+'"]');
+    tEl.insertBefore(m, ref.nextSibling);
+    return m;
+  });
+
+  var countEl=document.getElementById("tok-count"),
+      pctEl=document.getElementById("tok-pct"),
+      billEl=document.getElementById("bill"),
+      fillEl=document.getElementById("gauge-fill"),
+      gaugeLab=document.getElementById("gauge-lab"),
+      stateEl=document.getElementById("ctx-state"),
+      runBtn=document.getElementById("run-diet"),
+      resetBtn=document.getElementById("reset-diet");
+
+  function setInitial(){
+    countEl.textContent=fmt(before);
+    pctEl.textContent="";
+    billEl.innerHTML='this request ≈ <span class="now" style="color:var(--ink)">'+money(before)+'</span>';
+    fillEl.className="fill before"; fillEl.style.transform="scaleX(1)";
+    gaugeLab.textContent="full context"; stateEl.textContent="CONTEXT · before diet";
+  }
+  setInitial();
+
+  function tween(from,to,ms,cb,done){
+    if(reduce){ cb(to); done&&done(); return; }
+    var t0=null;
+    function step(ts){ if(!t0)t0=ts; var p=Math.min(1,(ts-t0)/ms);
+      var e=1-Math.pow(1-p,3); cb(Math.round(from+(to-from)*e));
+      if(p<1) requestAnimationFrame(step); else done&&done(); }
+    requestAnimationFrame(step);
+  }
+
+  var ran=false, running=false;
+  function runDiet(){
+    if(running||ran) return; running=true;
+    runBtn.disabled=true; runBtn.textContent="dieting…";
+    stateEl.textContent="CONTEXT · compacting…";
+
+    // 1. collapse dup copies, reveal dedup marker
+    var dupEls=[].slice.call(tEl.querySelectorAll('.blk[data-fate="dedup"]'));
+    dupEls.forEach(function(el,k){ setTimeout(function(){ el.classList.add("collapsing"); }, 250+k*140); });
+    setTimeout(function(){
+      mkDedup.removeAttribute("data-hidden");
+      requestAnimationFrame(function(){ mkDedup.style.opacity="1"; });
+    }, 250+dupEls.length*140+150);
+
+    // 2. page out stale tool results, reveal stubs
+    var elEls=[].slice.call(tEl.querySelectorAll('.blk[data-fate="elision"]'));
+    var t2=250+dupEls.length*140+450;
+    elEls.forEach(function(el,k){ setTimeout(function(){ el.classList.add("collapsing"); }, t2+k*220); });
+    elisionMarkers.forEach(function(m,k){ setTimeout(function(){ m.removeAttribute("data-hidden"); requestAnimationFrame(function(){m.style.opacity="1";}); }, t2+k*220+120); });
+
+    // 3. drive meter + gauge + bill
+    var t3=t2+elEls.length*220+200;
+    setTimeout(function(){
+      fillEl.className="fill after";
+      fillEl.style.transform="scaleX("+(after/before)+")";
+      gaugeLab.textContent="on a diet";
+      tween(before, after, 1100, function(v){ countEl.textContent=fmt(v); }, function(){
+        pctEl.textContent="−"+pct+"%";
+        billEl.innerHTML='this request &nbsp;<span class="was">'+money(before)+'</span>&nbsp;→&nbsp;<span class="now">'+money(after)+'</span>';
+        stateEl.textContent="CONTEXT · after diet ✓";
+        running=false; ran=true; resetBtn.disabled=false; runBtn.textContent="done ✓";
+      });
+    }, t3);
+  }
+  function resetDiet(){
+    ran=false; running=false;
+    tEl.querySelectorAll(".blk").forEach(function(el){
+      if(el.hasAttribute("data-marker")){ el.setAttribute("data-hidden","1"); el.style.opacity="0"; }
+      else el.classList.remove("collapsing");
+    });
+    setInitial();
+    runBtn.disabled=false; runBtn.textContent="Run the diet ▸"; resetBtn.disabled=true;
+  }
+  runBtn.addEventListener("click", runDiet);
+  resetBtn.addEventListener("click", resetDiet);
+  // auto-play once when scrolled into view
+  var autoIO=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ setTimeout(runDiet, 450); autoIO.disconnect(); } });
+  },{threshold:0.45});
+  autoIO.observe(document.getElementById("diet"));
+
+  /* ---------- proof: model toggle ---------- */
+  var DATA={
+    m3:{cap:"Primary model · 198 paired runs · ×3 majority-voted",
+        rows:[["input tokens","5.07M","1.46M","−71%"],["tasks solved","64 / 66","63 / 66","≈ parity"],["output similarity","—","92%","LLM-judge"]]},
+    m25:{cap:"Confirmation model · partial sample",
+        rows:[["input tokens","—","—","−72%"],["tasks solved","≈ baseline","≈ baseline","parity"],["output similarity","—","high","corroborated"]]}
+  };
+  var resBody=document.getElementById("res-body"), resCap=document.getElementById("res-cap");
+  function countUpDeltas(){
+    resBody.querySelectorAll(".delta").forEach(function(td){
+      var mt=/^−(\d+)%$/.exec(td.textContent); if(!mt) return;
+      var target=+mt[1];
+      if(reduce){ td.textContent="−"+target+"%"; return; }
+      tween(0, target, 900, function(v){ td.textContent="−"+v+"%"; });
+    });
+  }
+  function renderModel(m, animate){
+    var d=DATA[m]; resCap.textContent=d.cap;
+    resBody.innerHTML=d.rows.map(function(r){
+      return "<tr><td>"+r[0]+"</td><td>"+r[1]+"</td><td>"+r[2]+'</td><td class="delta">'+r[3]+"</td></tr>";
+    }).join("");
+    if(animate) countUpDeltas();
+  }
+  renderModel("m3", false);
+  var proofSeen=false;
+  var proofIO=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting && !proofSeen){ proofSeen=true; countUpDeltas(); } });
+  },{threshold:0.4});
+  proofIO.observe(document.getElementById("proof"));
+  document.querySelectorAll(".modeltabs button").forEach(function(b){
+    b.addEventListener("click", function(){
+      document.querySelectorAll(".modeltabs button").forEach(function(x){x.setAttribute("aria-selected","false");});
+      b.setAttribute("aria-selected","true"); renderModel(b.getAttribute("data-model"), true);
+    });
+  });
+
+  /* ---------- nav: active-section highlight ---------- */
+  var navLinks={};
+  document.querySelectorAll(".nav nav a[href^='#']").forEach(function(a){ navLinks[a.getAttribute("href").slice(1)]=a; });
+  var navIO=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      var a=navLinks[e.target.id]; if(!a) return;
+      if(e.isIntersecting){ Object.keys(navLinks).forEach(function(k){navLinks[k].classList.remove("active");}); a.classList.add("active"); }
+    });
+  },{threshold:0.5});
+  ["diet","proof","how","start"].forEach(function(id){ var s=document.getElementById(id); if(s) navIO.observe(s); });
+
+  /* ---------- how: pipeline ---------- */
+  var STAGES=[
+    {n:"01",nm:"interceptor",ex:"Detects the provider (Anthropic, OpenAI, Gemini, MiniMax) and keeps the request body <b>byte-faithful</b> — unknown fields pass through untouched."},
+    {n:"02",nm:"meter",ex:"Counts every input/output token and its <b>USD cost</b> with tiktoken, per session / day / repo."},
+    {n:"03",nm:"budget",ex:"Soft spend ceilings per session, day, and repo. <b>Warn, compact, or block</b> — your call."},
+    {n:"04",nm:"compactor",ex:"Safest-first: <b>dedup</b> (loss-free), then <b>recoverable elision</b> of old tool results. Mid-summarize ships <b>off</b>."},
+    {n:"05",nm:"quality guard",ex:"Shadow-eval scores divergence; if it crosses the budget, <b>safe-mode</b> disables the offending strategy."},
+    {n:"06",nm:"store + dashboard",ex:"SQLite telemetry + paged-out bodies (recoverable by id), streamed live to <b>localhost:7878</b>."}
+  ];
+  var pipe=document.getElementById("pipe"), stEx=document.getElementById("stage-explain");
+  STAGES.forEach(function(s,i){
+    var el=document.createElement("div"); el.className="stage"; el.setAttribute("role","tab");
+    el.setAttribute("aria-selected", i===3?"true":"false");
+    el.innerHTML='<div class="n">'+s.n+'</div><div class="nm">'+s.nm+'</div>';
+    function sel(){ document.querySelectorAll(".stage").forEach(function(x){x.setAttribute("aria-selected","false");});
+      el.setAttribute("aria-selected","true"); stEx.innerHTML=s.ex; }
+    el.addEventListener("mouseenter",sel); el.addEventListener("click",sel); el.addEventListener("focus",sel);
+    el.tabIndex=0; pipe.appendChild(el);
+  });
+  stEx.innerHTML=STAGES[3].ex;
+
+  /* ---------- brake: degradation gauge, animate when in view ---------- */
+  var dgIO=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){
+      var f=document.getElementById("degrade-fill");
+      f.style.width=(0.4/2.0*100)+"%"; // 0.4% observed against a 2.0% budget
+      dgIO.disconnect();
+    }});
+  },{threshold:0.5});
+  dgIO.observe(document.getElementById("degrade"));
+})();
+</script>
+</body>
+</html>
