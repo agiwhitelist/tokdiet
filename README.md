@@ -8,6 +8,8 @@
 
 [![CI](https://github.com/agiwhitelist/tokdiet/actions/workflows/ci.yml/badge.svg)](https://github.com/agiwhitelist/tokdiet/actions/workflows/ci.yml) ![license](https://img.shields.io/badge/license-MIT-blue) ![node](https://img.shields.io/badge/node-%3E%3D20-brightgreen) ![status](https://img.shields.io/badge/tokens-%E2%88%9270%25-success) ![quality](https://img.shields.io/badge/quality-%3D%20baseline-success)
 
+📝 **Launch write-up + full benchmark methodology:** [I cut an AI agent's input tokens by 71% and quality held — here's the 66-task benchmark](https://dev.to/agiwhitelist/i-cut-an-ai-agents-input-tokens-by-71-and-quality-held-heres-the-66-task-benchmark-2b97)
+
 ---
 
 ## The proof (this is the whole point)
