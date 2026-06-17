@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1000px; height:420px; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(1200px 500px at 78% -10%, #103027 0%, rgba(16,48,39,0) 60%),
+      linear-gradient(160deg, #0b0e14 0%, #0d1320 100%);
+    font-family: "Segoe UI", ui-sans-serif, system-ui, Arial, sans-serif;
+    color:#e6edf3;
+    position:relative;
+  }
+  /* safe zone is roughly centered 800x418; keep critical text within ~100px side margins */
+  .wrap { position:absolute; inset:0; padding:54px 100px; display:flex; flex-direction:column; justify-content:center; }
+  .brand { display:flex; align-items:center; gap:12px; font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size:22px; color:#56d3c9; letter-spacing:.5px; }
+  .brand .dot { width:10px; height:10px; border-radius:50%; background:#38d39f; box-shadow:0 0 12px #38d39f; }
+  .brand .muted { color:#5b6472; }
+  .headline { margin-top:18px; font-size:84px; font-weight:800; line-height:1; letter-spacing:-2px; }
+  .headline .num { color:#38d39f; }
+  .sub { margin-top:18px; font-size:27px; font-weight:600; color:#c7d0db; }
+  .sub .ok { color:#38d39f; }
+  .sub .dim { color:#5b6472; font-weight:500; }
+  .bars { margin-top:26px; display:flex; flex-direction:column; gap:9px; }
+  .bar { display:flex; align-items:center; gap:14px; font-family: ui-monospace, Consolas, monospace; font-size:15px; color:#9aa4b2; white-space:nowrap; }
+  .bar .lab { width:34px; color:#7d8694; }
+  .bar .track { height:14px; border-radius:4px; flex:0 0 auto; }
+  .bar .red { width:360px; background:#ff6b6b; }
+  .bar .grn { width:104px; background:#38d39f; }
+  .tagline { position:absolute; left:100px; bottom:34px; font-family: ui-monospace, Consolas, monospace; font-size:16px; color:#7d8694; }
+  .badge { position:absolute; right:60px; bottom:34px; font-family: ui-monospace, Consolas, monospace; font-size:14px; color:#5b6472; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span> tokdiet <span class="muted">· local token proxy</span></div>
+    <div class="headline"><span class="num">−71%</span> input tokens</div>
+    <div class="sub"><span class="ok">quality held</span> <span class="dim">·  64 → 63 of 66 tasks  ·  measured, not mocked</span></div>
+    <div class="bars">
+      <div class="bar"><span class="lab">in</span><span class="track red"></span><span>5.07M tok</span></div>
+      <div class="bar"><span class="lab">out</span><span class="track grn"></span><span>1.46M tok</span></div>
+    </div>
+  </div>
+  <div class="tagline">ccusage that shrinks the bill — without losing quality.</div>
+  <div class="badge">66-task A/B · 2 models · MIT</div>
+</body>
+</html>

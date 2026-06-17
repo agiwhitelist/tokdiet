@@ -2,8 +2,7 @@
 title: "I cut an AI agent's input tokens by 71% and quality held — here's the 66-task benchmark"
 published: false
 tags: opensource, ai, typescript, showdev
-cover_image: https://TODO-replace-with-your-1000x420-png-or-jpg-cover-url
-canonical_url: https://github.com/agiwhitelist/tokdiet
+cover_image: https://raw.githubusercontent.com/agiwhitelist/tokdiet/main/assets/cover.png
 ---
 
 I cut a coding agent's input tokens by **71%** — from 5.07M down to 1.46M across a 66-task run — and quality stayed within model noise (63 vs 64 of 66 tasks solved).
