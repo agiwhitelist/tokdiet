@@ -252,6 +252,36 @@ Prices come from `pricing.json` (**USD per 1,000,000 tokens**, dated, user‑upd
 
 ---
 
+## Works with your agent
+
+tokdiet needs **no per-tool plugin**. The rule is simple:
+
+> If your tool lets you **override the model base URL** and speaks **Anthropic / OpenAI / Gemini**, it works with tokdiet — point it at `http://localhost:7787/v1` (OpenAI) or `http://localhost:7787` (Anthropic) and run as usual.
+
+Confirmed from each tool's official docs (2026-06-18):
+
+| Tool | Where you set the base URL |
+|------|----------------------------|
+| **Claude Code** | `ANTHROPIC_BASE_URL` env |
+| **opencode** | `opencode.json` → `provider.<id>.options.baseURL` |
+| **Aider** | `OPENAI_API_BASE` / `ANTHROPIC_API_BASE` env (model prefixed `openai/`·`anthropic/`) |
+| **Continue.dev** | `config.yaml` → `apiBase` |
+| **Cline / Roo Code / Kilo Code** | GUI: "OpenAI Compatible" Base URL, or Anthropic "Use custom base URL" |
+| **Goose** | `OPENAI_HOST` env — host root, **no `/v1`** |
+| **Zed** | `settings.json` → `language_models.openai_compatible.<name>.api_url` |
+| **JetBrains AI Assistant** | Settings → AI Assistant → third-party OpenAI-compatible URL |
+| **Open Interpreter** | `--api_base` flag |
+| **llm** (Datasette) | `extra-openai-models.yaml` → `api_base` |
+| **Crush** (Charm) | `crush.json` → `providers.<id>.base_url` (both formats) |
+| **pi** (earendil-works) · **oh-my-pi** | `models.json` / `models.yml` → `providers.<id>.baseUrl` |
+| **Hermes Agent** (Nous) | `~/.hermes/config.yaml` → `model.base_url` |
+
+⚠️ **Partial:** Cursor (chat panel only — agent/tab stay on Cursor's cloud), Codex CLI (Responses-API only now), gptme (OpenAI path only), openclaw (depends on its backend). ❌ **Not a fit yet:** Windsurf (no editable base URL), Inflection Pi (consumer app, not a coding agent).
+
+**Per-tool copy-paste setup, gotchas (`/v1` vs bare host, dummy keys), and the partial/unsupported details → [docs/integrations.md](./docs/integrations.md).**
+
+---
+
 ## Roadmap
 
 - **Page‑fault auto‑reinjection** — when the model references a paged‑out id or signals it's missing content, restore it and retry automatically *(partially shipped).*
